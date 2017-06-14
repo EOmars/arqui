@@ -308,8 +308,7 @@ void inicializar(int n, char nombre[]){
 		if(c != EOF){
 			if(bytes >= n)exitVM(3);
 			m[bytes++] = c;}
-	}
-	fclose(archivo);
+	}fclose(archivo);
 	gp = n - 1;
 	r[13] = gp;
 }
