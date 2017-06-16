@@ -91,7 +91,7 @@ void syscall(){
 		if(a < bytes) exitVM(2);
 		/* Se toma lectura de la cadena. */
 		gets(s);
-		/* Se almacena la cadena en la memory. */
+		/* Se almacena la cadena en la memoria. */
 		do{	if ((a + b) > sp) exitVM(2);
 			else memory[a + b] = s[b];
 		}while(s[b++] != 0);

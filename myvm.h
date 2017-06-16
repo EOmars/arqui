@@ -62,4 +62,4 @@ void cpu();
 * @param n Cantidad de memory asignada.
 * @param filename Nombre del archivo.
 */
-void inicializar(int n, char filename[]);
+void start(int n, char filename[]);
