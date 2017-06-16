@@ -1,3 +1,4 @@
+%option noyywrap
 %{
 /* Usamos el codigo de la tabla de simbolos */
 #include "codegen.h"

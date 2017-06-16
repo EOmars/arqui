@@ -1,23 +1,30 @@
 #include <stdio.h>
-
 #include <stdlib.h>
-
 #include <string.h>
 
-char *m, c, w[4], *s;
-int bytes, gp, pc, ciclos, dr;
+char *memoria, c, word[4], *s;
+// gp = apuntador a la pila de memoria
+int bytes = 0, gp, pc=0, ciclos=0, dr=0;
 
 float r[14];
 
-void endianConv(char *b, char *w){w[0] = b[3], w[1] = b[2], w[2] = b[1], w[3] = b[0];}
+void endianConv(char *b, char *w){
+	word[0] = b[3], word[1] = b[2], word[2] = b[1], word[3] = b[0];
+}
 
-float btor(char *b){return 0;}
+
+float btor(char *b){
+	return b[3]; 
+			//| ((b[1]) << 8 )
+			//| ((b[2]) << 16)
+			//| ((b[3]) << 24);
+}
 
 void guardaVolcado() {
 	FILE* archivo = fopen("volMem.bin", "wb");
-	fwrite(m, 1, gp + 1, archivo);
+	fwrite(memoria, 1, gp, archivo);
 	fflush(archivo);
-	close(archivo);
+	fclose(archivo);
 }
 
 int exitVM(int e){
@@ -41,11 +48,12 @@ int exitVM(int e){
 	case 8: fprintf(stderr, "Argumentos invalidos.");
 		break;
 	default: break;
-	} guardaVolcado();
+	} 
+	guardaVolcado();
 	exit(e);
 }
 
-void syscall(){
+void mysyscall(){
 	int a = 0, b = 0;
 	/* Se analiza el caso del codigo de llamada. */
 	switch((int)r[8]){
@@ -69,7 +77,7 @@ void syscall(){
 		gets(s);
 		/* Se almacena la cadena en la memoria. */
 		do{	if ((a + b) > gp) exitVM(2);
-			else m[a + b] = s[b];
+			else memoria[a + b] = s[b];
 		}while(s[b++] != 0);
 		r[10] = b;
 		break;
@@ -87,10 +95,11 @@ void syscall(){
 		a = r[9];
 		if(a < 0 || a > gp) exitVM(2);
 		/* Se imprime la cadena. */
-		while(m[a] != 0) printf("%c",m[a++]);
+		while(memoria[a] != 0) printf("%c",memoria[a++]);
 		printf("\n");
 		break;
 	case 8: /* Salir del programa */
+
 		exitVM(0);
 		break;
 	default: exitVM(6);
@@ -98,30 +107,36 @@ void syscall(){
 }
 
 void fdemwb(){
-	int op = m[pc], dr = 0, a = 0, b = 0, i;
+	int op = memoria[pc], dr = 0, a = 0, b = 0, i;
 	fflush(stdin);
 	printf("PC: %d\tCiclos: %d\n", pc, ciclos);	
 	r[12] = pc; /* Se actualiza el registro contador de programa.*/
-	for(i = 0; i < 14; i++) printf("Registro %d: %.0f\t%.3f\n", i, r[i], r[i]);
+	//for(i = 0; i < 14; i++) printf("Registro %d: %.0f\t%.3f\n", i, r[i], r[i]);
 	/* Se verifica que se haya terminado la ejecucion.*/
-	if(pc == bytes) exitVM(0);
+	if(pc == bytes) {
+		printf("pc == bytes\n");
+	 	exitVM(0);
+	 }
 	/* Se verifica que la instruccion actual tenga en memoria sus parametros.*/
 	if((pc + 3) >= bytes) exitVM(8);
 	/* Se carga el byte del registro destino. */
-	dr = m[pc + 1];
+	dr = memoria[pc + 1];
 	if(dr < 0 || dr > 13) exitVM(4);
 	/* Se cargan los parametros para operaciones binarias. */
 	if((0 <= op) && (op < 11)){
 		/* Se carga el byte del primer parametro.*/
-		a = m[pc + 2];
+		a = memoria[pc + 2];
 		if(a < 0 || a > 13) exitVM(4);
 		/* Se carga el byte del segundo parametro.*/
-		b = m[pc + 3];
+		b = memoria[pc + 3];
 		if(b < 0 || b > 13) exitVM(4);
 		printf("OpCode: %d\tDestino: $r%d\tOpA: $r%d\tOpB: $r%d\n", op, dr, a, b);
 	}else{/* Se verifican los parametros para la instruccion especial li.*/
-	if(op == 16){ if((pc + 5) >= bytes) exitVM(5);}
-	else printf("OpCode: %d\trd: $r%d\topA: $r%d\topB: $r%d\n", op, m[pc + 1], m[pc + 2], m[pc + 3]);}
+		if(op == 16){
+	 		if((pc + 5) >= bytes) exitVM(5);
+	 	}else 
+	 		printf("OpCode: %d\trd: $r%d\topA: $r%d\topB: $r%d\n", op, memoria[pc + 1], memoria[pc + 2], memoria[pc + 3]);
+	 }
 	/* Se analiza el caso del opCode. */
 	switch(op) {
 	case 0: /* add: Suma entera (con signo) */
@@ -183,90 +198,80 @@ void fdemwb(){
 		break;
 	case 11: /* not: Operador de bits NOT */	
 		/* Parametro.*/
-		a = m[pc + 3];		
+		a = memoria[pc + 3];		
 		if(a < 0 || a > 13) exitVM(4);
 		printf("NOT : $r%d = not %.0f\n", dr, r[a]);
 		r[dr] = ~(int)r[a];
 		ciclos += 1;
 		break;
 	case 12: /* lb: Cargar Byte */		
-		dr = m[pc + 3];
+		dr = memoria[pc + 3];
 		/* Registro a leer.*/
-		a = m[pc + 1];
+		a = memoria[pc + 1];
 		if(a < 0 || a > 13) exitVM(4);
 		/* Direccion de memoria en el registro.*/
 		b = r[a];
 		if(b < 0 || b > gp) exitVM(2);
 		/* Carga del byte en el registro.*/
-		r[dr] = m[b];
-		printf("Cargando %d en $r%d\n", m[b], dr);
+		r[dr] = memoria[b];
+		printf("Cargando %d en $r%d\n", memoria[b], dr);
 		ciclos += 500;
 		break;
 	case 13: /* lw: Cargar palabra (4 bytes) */
-		dr = m[pc + 3];
+		dr = memoria[pc + 3];
 		/* Registro a leer.*/
-		a = m[pc + 1];
+		a = memoria[pc + 1];
 		if(a < 0 || a > 13) exitVM(4);
 		/* Direccion de memoria en el registro.*/
 		b = r[a];
 		if(b < 0 || (b + 3) > gp) exitVM(2);
 		/* Carga de la palabra en el registro.*/
-		endianConv(&m[b], w);
-		r[dr] = btor(w);
+		endianConv(&memoria[b], word);
+		r[dr] = btor(word);
 		printf("Cargando %.0f en $r%d\n", r[dr], dr);
 		ciclos += 1500;
 		break;
 	case 14: /* sb: Guardar Byte */
 		/* Registro del byte a guardar.*/
-		a = m[pc + 3];
+		a = memoria[pc + 3];
 		if(a < 0 || a > 13) exitVM(4);
 		/* Direccion de memoria para guardar el byte.*/
 		b = r[dr];
 		if(b < 0 || b > gp) exitVM(2);
 		/* Almacenamiento del byte en la memoria.*/
-		m[b] = (char)r[a];
-		printf("Guardando %d en ($r%d)\n", m[b], dr);
+		memoria[b] = (char)r[a];
+		printf("Guardando %d en ($r%d)\n", memoria[b], dr);
 		ciclos += 700;
 		break;
 	case 15: /* sw: Guardar palabra (4 bytes) */
 		/* Registro de la palabra a guardar.*/
-		a = m[pc + 3];
+		a = memoria[pc + 3];
 		if(a < 0 || a > 13) exitVM(4);
 		/* Direccion de memoria para guardar la palabra.*/
 		b = r[dr];
 		if(b < 0 || (b + 3) > gp) exitVM(2);
 		/* Almacenamiento de la palabra en la memoria.*/
-		endianConv((char*)&r[a], &m[b]);
+		endianConv((char*)&r[a], &memoria[b]);
 		printf("Guardando %0.f en ($r%d)\n",r[a], dr);
 		ciclos += 2100;
 		break;
 	case 16: /* li: Cargar valor constante */
 		/* Carga del valor constante en el registro*/
-		r[dr] = btor(&m[pc + 2]);
+		r[dr] = btor(&memoria[pc + 2]);
 		printf("OpCode: 16\trD: $r%d\tCte: %.0f\n", dr, r[dr]);
 		printf("Cargando %.0f en $r%d\n", r[dr], dr);
-		pc += 2;
+		pc += 7; //son 6 bytes
 		ciclos += 1500;
+		if (ciclos >= 4500) exitVM(0);
 		break;
-	case 17: /* b: Salto incondicional */
-		/* Se carga el indice del registro destino. */
-		dr = m[pc + 3];
-		if(dr < 0 || dr > 13) exitVM(4);
-		/* Se carga la direccion del salto. */
-		b = r[dr];
-		if(b < 0 || b >= bytes) exitVM(2);
-		pc = b - 4;
-		printf("Saltando a %d\n", b);
-		/* Se guarda la direccion de retorno en el registro. */
-		r[11] = pc + 4;
-		ciclos += 1;
+	case 17: 
 		break;
 	case 18: /* beqz: Salto si es igual a cero */
 		/* Se carga la direccion del salto. */
 		b = r[dr];
 		if(b < 0 || b >= bytes) exitVM(2);
 		/* Registro a evaluar. */
-		a = m[pc + 3];
+		a = memoria[pc + 3];
 		if(a < 0 || a > 13) exitVM(4);
 		if(r[a] == 0){
 			pc = b - 4;
@@ -280,7 +285,7 @@ void fdemwb(){
 		b = r[dr];
 		if(b < 0 || b >= bytes) exitVM(2);
 		/* Registro a evaluar. */
-		a = m[pc + 3];
+		a = memoria[pc + 3];
 		if(a < 0 || a > 13) exitVM(4);
 		if(r[a] < 0){
 			pc = b - 4;
@@ -291,26 +296,46 @@ void fdemwb(){
 		break;
 	case 20: /* syscall: Llamada al sistema */
 		printf("Syscall:\tCodigo: %.0f\tArgumento: %.0f\tDato: %.0f\n",r[8], r[9], r[10]);
-		syscall();
+		mysyscall();
 		ciclos += 50;
 		break;
 	default: exitVM(5);
-	} pc += 4;
+	} 
+	pc += 8;
+	printf("PC: %d\n", pc);
 	fdemwb();
 }
 
 void inicializar(int n, char nombre[]){
-	FILE *archivo = fopen(nombre,"r");
-	if(archivo == NULL)exitVM(7);
-	m = (char*)calloc(n, 1);
-	while(feof(archivo) == 0){
-		c = fgetc(archivo);
-		if(c != EOF){
-			if(bytes >= n)exitVM(3);
-			m[bytes++] = c;}
-	}fclose(archivo);
-	gp = n - 1;
+	FILE *fileptr;
+	char *buffer;
+	long filelen;
+	memoria = (char*)calloc(n, sizeof(char));
+
+	fileptr = fopen("err1.bin", "rb");  // Open the file in binary mode
+	fseek(fileptr, 0, SEEK_END);          // Jump to the end of the file
+	filelen = ftell(fileptr);             // Get the current byte offset in the file
+	if(filelen>n) exitVM(3);
+	rewind(fileptr);                      // Jump back to the beginning of the file
+
+	buffer = (char *)malloc((filelen+1)*sizeof(char)); // Enough memory for file + \0
+	fread(buffer, filelen, 1, fileptr); // Read in the entire file
+	fclose(fileptr); // Close the file
+
+	int i =0;
+	for(i=0; i<filelen; i++){
+
+		if(buffer[i] != EOF){
+			memoria[i] = buffer[i];
+			printf("%d\n", memoria[i]);
+		}
+	}
+	bytes = filelen;
+
+	gp = n - 1; //apunta a la ultima celda de la memoria
 	r[13] = gp;
+
+
 }
 
 int main(int n, char *args[]) {	
