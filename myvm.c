@@ -1,7 +1,6 @@
 /*
  * Autores:
- * PatlaniAguilarLuisAngel
- * Ramirez Froylan Daniel
+ * 
  *
  */
 #include <stdio.h>

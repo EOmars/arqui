@@ -11,7 +11,7 @@ incorrect4.asm incorrect5.asm prueba.asm hello.asm bad.asm
 CFLAGS=-g
 
 compile: lexer ${MAIN} ${SRC} ${INCLUDE}
-	g++ ${CFLAGS} -o ${BIN} ${SRC} ${LEXER} ${LIBS} 
+	g++ ${CFLAGS} -o ${BIN} ${SRC} ${LEXER} 
 
 lexer: ${LEX}
 	flex -o ${LEXER} ${LEX}
