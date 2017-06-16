@@ -13,18 +13,21 @@ char	*memory,
 		*s;
 
 /* Variables auxiliares.*/
-// gp = apuntador a la pila de memory
+// sp = apuntador a la pila de memoria
 int 	bytes, 
-		gp, 
+		sp, 
 		pc, 
 		ciclos, 
 		dr;
 
-/* Representacion de un registro y arreglo de registros.*/
-union Registro {
+/* Representacion de los registros.*/
+union registro{
 	int i;
 	float f;
 }r[14];
+
+
+void voldaco();
 
 /**
  * Invierte el orden de los bytes de una palabra

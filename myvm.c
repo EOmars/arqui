@@ -28,6 +28,13 @@ int getIntValue(char *b){
 	return (b[0]<<24) + (b[1]<<16) + (b[2]<<8) + (b[3]);
 }
 
+void volcado() {
+	FILE* archivo = fopen("volcado.bin", "wb");
+	fwrite(memory, 1, sp, archivo);
+	fflush(archivo);
+	fclose(archivo);
+}
+
 /**
 * Funcion que detiene el programa, mostrando la causa en consola.
 * @param e Codigo de salida.
@@ -78,14 +85,14 @@ void syscall(){
 		scanf("%f",&(r[10].f));
 		break;
 	case 3: /* Leer cadena */
-		s = calloc(gp,1);
+		s = calloc(sp,1);
 		/* Se carga la direccion de almacenamiento de la cadena. */
 		a = bytes + r[9].i;
 		if(a < bytes) exitVM(2);
 		/* Se toma lectura de la cadena. */
 		gets(s);
 		/* Se almacena la cadena en la memory. */
-		do{	if ((a + b) > gp) exitVM(2);
+		do{	if ((a + b) > sp) exitVM(2);
 			else memory[a + b] = s[b];
 		}while(s[b++] != 0);
 		r[10].i = b;
@@ -102,10 +109,10 @@ void syscall(){
 	case 7: /* Escribir cadena */
 		/* Se carga la direccion de lectura de la cadena. */
 		a = bytes + r[9].i;
-		if(a < bytes || a > gp) exitVM(2);
+		if(a < bytes || a > sp) exitVM(2);
 		/* Se carga la longitud de la cadena. */
 		b = a + r[10].i;
-		if(b > gp) exitVM(2);
+		if(b > sp) exitVM(2);
 		/* Se imprime la cadena. */
 		while(a < b) printf("%c",memory[a++]);
 		printf("\n");
@@ -224,7 +231,7 @@ void cpu(){
 		if(a < 0 || a > 13) exitVM(4);
 		/* Direccion de memory en el registro.*/
 		b = bytes + r[a].i;
-		if(b < bytes || b > gp) exitVM(2);
+		if(b < bytes || b > sp) exitVM(2);
 		/* Carga del byte en el registro.*/
 		r[dr].i = memory[b];
 		printf("Cargando %d en $r%d\n", memory[b], dr);
@@ -236,7 +243,7 @@ void cpu(){
 		if(i < 0 || i > 13) exitVM(4);
 		/* Direccion de memory en el registro.*/
 		b = bytes + r[a].i;
-		if(b < bytes || (b + 3) > gp) exitVM(2);
+		if(b < bytes || (b + 3) > sp) exitVM(2);
 		/* Carga de la palabra en el registro.*/
 		r[dr].i = getIntValue(toEndian(&memory[b]));
 		printf("Cargando %d en $r%d\n", r[dr].i, dr);
@@ -248,7 +255,7 @@ void cpu(){
 		if(a < 0 || a > 13) exitVM(4);
 		/* Direccion de memory para guardar el byte.*/
 		b = bytes + r[dr].i;
-		if(b < bytes || b > gp) exitVM(2);
+		if(b < bytes || b > sp) exitVM(2);
 		/* Almacenamiento del byte en la memory.*/
 		memory[b] = (char)r[a].i;
 		printf("Guardando %d en ($r%d)\n", memory[b], dr);
@@ -260,7 +267,7 @@ void cpu(){
 		if(a < 0 || a > 13) exitVM(4);
 		/* Direccion de memory para guardar la palabra.*/
 		b = bytes + r[dr].i;
-		if(b < bytes || (b + 3) > gp) exitVM(2);
+		if(b < bytes || (b + 3) > sp) exitVM(2);
 		/* Almacenamiento de la palabra en la memory.*/
 		toEndian((char*)&r[a].i);
 		memory[b] = w[0], memory[b + 1] = w[1], memory[b + 2] = w[2], memory[b + 3] = w[3];
@@ -323,7 +330,7 @@ void cpu(){
 		break;
 	default: exitVM(5);
 	} pc += 4;
-	getchar();
+	//getchar();
 	cpu();
 }
 
@@ -358,8 +365,8 @@ void inicializar(int n, char filename[]){
 	}
 	bytes = filelen;
 
-	gp = n - 1; //apunta a la ultima celda de la memory
-	r[13].i = gp-bytes;
+	sp = n - 1; //apunta a la ultima celda de la memory
+	r[13].i = sp-bytes;
 }
 
 /**
