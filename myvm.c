@@ -339,7 +339,7 @@ void cpu(){
 * @param n Cantidad de memory asignada.
 * @param filename Nombre del archivo.
 */
-void inicializar(int n, char filename[]){
+void start(int n, char filename[]){
 	FILE *fileptr;
 	char *buffer;
 	long filelen;
@@ -377,8 +377,8 @@ void inicializar(int n, char filename[]){
  */
 int main(int n, char *args[]) {	
 	if(n < 2) exitVM(8);
-	if(n < 3) inicializar(1000, args[2]);
-	else inicializar(atoi(args[2]), args[3]);
+	if(n < 3) start(1000, args[2]);
+	else start(atoi(args[2]), args[3]);
 	cpu();
 	return 0;
 }
