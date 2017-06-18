@@ -1,5 +1,8 @@
 /*
- * Autores:
+ * Proyecto final
+ * Julio David Sanchez Chavez
+ * Jose Alejandro Perez Marquez
+ * Elías Omar Pérez Martínez
  * 
  *
  */
@@ -19,12 +22,11 @@ char* toEndian(char *b){
 }
 
 /**
- * Metodo que unifica los bytes de una palabra para determinar su valor entero.
+ * Obtiene el valor entero de 4 bytes
  * @param b Apuntador al primer byte de la palabra.
  * @return Devuelve el valor entero de la palabra.
  */
 int getIntValue(char *b){
-	/* Recorriendo los bytes segun su posicion en el entero. */
 	return (b[0]<<24) + (b[1]<<16) + (b[2]<<8) + (b[3]);
 }
 
@@ -42,7 +44,8 @@ void volcado() {
 */
 int exitVM(int error){
 	switch(error) {
-	case 0: printf("Ejecucion finalizada con exito.");
+	case 0: printf("Ejecucion finalizada con exito.\n");
+		printf("Número de ciclos totales: %d\n",ciclos);
 		break;
 	case 1: fprintf(stderr, "Division entre cero.");
 		break;
@@ -61,6 +64,10 @@ int exitVM(int error){
 	case 8: fprintf(stderr, "Argumentos invalidos.");
 		break;
 	default: break;
+	} 
+
+	if(error){
+		volcado();
 	} 
 	printf("\n");
 	exit(error);
@@ -91,12 +98,16 @@ void syscall(){
 		if(a < bytes) exitVM(2);
 		/* Se toma lectura de la cadena. */
 		gets(s);
+
 		/* Se almacena la cadena en la memoria. */
-		do{	if ((a + b) > sp) exitVM(2);
+		do{	
+			if ((a + b) > sp) exitVM(2);
 			else memory[a + b] = s[b];
 		}while(s[b++] != 0);
+
 		r[10].i = b;
 		break;
+
 	case 4: /* Escribir entero */
 		printf("%d\n",r[9].i);
 		break;
@@ -138,14 +149,17 @@ void cpu(){
 	int op = memory[pc], dr = 0, a = 0, b = 0, i;
 	printf("PC: %d\tCiclos: %d\n", pc, ciclos);	
 	r[12].i = pc; /* Se actualiza el registro contador de programa.*/
-	for(i = 0; i < 14; i++) printf("Registro %d: %d\t%.3f\n", i, r[i].i, r[i].f);
+	//for(i = 0; i < 14; i++) printf("Registro %d: %d\t%.3f\n", i, r[i].i, r[i].f);
 	/* Se verifica que se haya terminado la ejecucion.*/
-	if(pc == bytes) exitVM(0);
+	if(pc == bytes) 
+		exitVM(0);
 	/* Se verifica que la instruccion actual tenga en memory sus parametros.*/
-	if((pc + 3) >= bytes) exitVM(8);
+	if((pc + 3) >= bytes) 
+		exitVM(8);
 	/* Se carga el byte del registro destino. */
 	dr = memory[pc + 1];
-	if(dr < 0 || dr > 13) exitVM(4);
+	if(dr < 0 || dr > 13) 
+		exitVM(4);
 	/* Se cargan los parametros para operaciones binarias. */
 	if((0 <= op) && (op < 11)){
 		/* Se carga el byte del primer parametro.*/
@@ -157,7 +171,8 @@ void cpu(){
 		printf("OpCode: %d\tDestino: $r%d\tOpA: $r%d\tOpB: $r%d\n", op, dr, a, b);
 	}else{/* Se verifican los parametros para la instruccion especial li.*/
 	if(op == 16){ if((pc + 5) >= bytes) exitVM(5);}
-	else printf("OpCode: %d\trd: $r%d\topA: $r%d\topB: $r%d\n", op, memory[pc + 1], memory[pc + 2], memory[pc + 3]);}
+		else printf("OpCode: %d\trd: $r%d\topA: $r%d\topB: $r%d\n", op, memory[pc + 1], memory[pc + 2], memory[pc + 3]);
+	}
 	/* Se analiza el caso del opCode. */
 	switch(op) {
 	case 0: /* add: Suma entera (con signo) */
@@ -360,13 +375,13 @@ void start(int n, char filename[]){
 
 		if(buffer[i] != EOF){
 			memory[i] = buffer[i];
-			printf("%d\n", memory[i]);
+			//printf("%d\n", memory[i]);
 		}
 	}
 	bytes = filelen;
 
 	sp = n - 1; //apunta a la ultima celda de la memory
-	r[13].i = sp-bytes;
+	r[13].i = bytes;
 }
 
 /**
@@ -376,9 +391,12 @@ void start(int n, char filename[]){
  * @return Devuelve un codigo de salida.
  */
 int main(int n, char *args[]) {	
-	if(n < 2) exitVM(8);
-	if(n < 3) start(1000, args[2]);
-	else start(atoi(args[2]), args[3]);
-	cpu();
+
+	if(n==4){
+		start(atoi(args[2]), args[3]);
+		cpu();
+	}
+	else
+		exitVM(8);
 	return 0;
 }

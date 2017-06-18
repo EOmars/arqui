@@ -1,10 +1,11 @@
-
 /*
- * Autores:
+ * Proyecto final
+ * Julio David Sanchez Chavez
+ * Jose Alejandro Perez Marquez
+ * Elías Omar Pérez Martínez
  * 
  *
  */
-
 /* Arreglo que representa la memory y variables auxiliares.*/
 
 char	*memory, 
@@ -27,7 +28,7 @@ union registro{
 }r[14];
 
 
-void voldaco();
+void volcado();
 
 /**
  * Invierte el orden de los bytes de una palabra
@@ -37,7 +38,7 @@ void voldaco();
 char* toEndian(char *);
 
 /**
- * Metodo que unifica los bytes de una palabra para determinar su valor entero.
+ * Obtiene el valor entero de 4 bytes
  * @param b Apuntador al primer byte de la palabra.
  * @return Devuelve el valor entero de la palabra.
  */
